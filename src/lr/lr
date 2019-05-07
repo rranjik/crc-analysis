@@ -1,0 +1,5 @@
+data <- read.csv("C:\\Users\\RAGAVENDRA KUMAR R\\OneDrive\\Documents\\CSCI-GA.2565-001 - Machine Learning\\crc-analysis\\data\\multi-cohortd.csv", header = TRUE)
+y <- data["label"]
+x = data[,!(names(data) %in% c("label"))]
+x = as.matrix(x)
+fit = glmnet(x, y, family = "binomial", alpha = 0.5)
