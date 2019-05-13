@@ -9,16 +9,35 @@ str(data, list.len=ncol(data))
 
 data$gender<-as.factor(data$gender)
 data$label<-as.factor(data$label)
+data$obese<-as.factor(data$obese)
+
+## 
+library(glmnet)
+
+x<-model.matrix(label~.,data=data)
+x<-x[,-nearZeroVar(x)]
+x=x[,-1]
+
+glmnet1<-cv.glmnet(x=x,y=data$label,type.measure='class',nfolds=5,alpha=.5,family="binomial")
+
+c<-coef(glmnet1,s='lambda.min',exact=TRUE)
+inds<-which(c!=0)
+variables<-row.names(c)[inds]
+variables
+
+reducedFeatures <- data[,which(names(data) %in% variables)]
+
+reducedFeatures$label <- data$label
 
 ##Split 
-smp_size <- floor(0.75 * nrow(data))
+smp_size <- floor(0.75 * nrow(reducedFeatures))
 
 ## set the seed to make your partition reproductible
 set.seed(123)
-data_ind <- sample(seq_len(nrow(data)), size = smp_size)
+data_ind <- sample(seq_len(nrow(reducedFeatures)), size = smp_size)
 
-train2 <- data[data_ind, ]
-test2 <- data[-data_ind, ]
+train2 <- reducedFeatures[data_ind, ]
+test2 <- reducedFeatures[-data_ind, ]
 
 ## GLM 
 
@@ -35,18 +54,6 @@ varImp(modelFit)
 
 coeff<-model$coefficients
 
-## 
-library(glmnet)
-
-x<-model.matrix(label~.,data=data)
-x=x[,-1]
-
-glmnet1<-cv.glmnet(x=x,y=data$label,type.measure='mse',nfolds=5,alpha=.5,family="binomial")
-
-c<-coef(glmnet1,s='lambda.min',exact=TRUE)
-inds<-which(c!=0)
-variables<-row.names(c)[inds]
-variables<-variables[variables %ni% '(Intercept)']
 ## convert coeff matric into data frame 
 df <- as.data.frame(as.matrix(c))
 write.csv(df,'lasso.csv')
