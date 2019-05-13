@@ -1,5 +1,66 @@
-data <- read.csv("C:\\Users\\RAGAVENDRA KUMAR R\\OneDrive\\Documents\\CSCI-GA.2565-001 - Machine Learning\\crc-analysis\\data\\multi-cohortd.csv", header = TRUE)
-y <- data["label"]
-x = data[,!(names(data) %in% c("label"))]
-x = as.matrix(x)
-fit = glmnet(x, y, family = "binomial", alpha = 0.5)
+library(aod)
+library(ggplot2)
+library(glmnet)
+library(caret)
+library(mlbench)
+
+data<- read.csv("multi-cohortd.csv",header = TRUE)
+str(data, list.len=ncol(data))
+
+data$gender<-as.factor(data$gender)
+data$label<-as.factor(data$label)
+
+##Split 
+smp_size <- floor(0.75 * nrow(data))
+
+## set the seed to make your partition reproductible
+set.seed(123)
+data_ind <- sample(seq_len(nrow(data)), size = smp_size)
+
+train2 <- data[data_ind, ]
+test2 <- data[-data_ind, ]
+
+## GLM 
+
+model <- glm(label ~.,family=binomial(link='logit'),data=train2,control = list(maxit = 100))
+
+summary(model)
+library(caret)
+varImp(model)
+
+##
+modelFit <- train(label~.,data=data, method="rf" ,importance = TRUE)
+varImp(modelFit)
+
+
+coeff<-model$coefficients
+
+## 
+library(glmnet)
+
+x<-model.matrix(label~.,data=data)
+x=x[,-1]
+
+glmnet1<-cv.glmnet(x=x,y=data$label,type.measure='mse',nfolds=5,alpha=.5,family="binomial")
+
+c<-coef(glmnet1,s='lambda.min',exact=TRUE)
+inds<-which(c!=0)
+variables<-row.names(c)[inds]
+variables<-variables[variables %ni% '(Intercept)']
+## convert coeff matric into data frame 
+df <- as.data.frame(as.matrix(c))
+write.csv(df,'lasso.csv')
+## Remove all zero rows from df
+df1<-as.data.frame(df[df$coff != 0, ])
+df$1<-as.numeric(df$1)
+
+###stepwise 
+
+fullmod = glm(label ~., family=binomial(link='logit'),data=data,control = list(maxit = 100))
+summary(fullmod)
+
+#Null model
+nothing <- glm(label ~ 1,family=binomial(link='logit'),data=data,control = list(maxit = 100))
+
+##
+backwards = step(fullmod)
