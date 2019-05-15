@@ -29,6 +29,30 @@ reducedFeatures <- data[,which(names(data) %in% variables)]
 
 reducedFeatures$label <- data$label
 
+reducedFeaturesXG<-model.matrix(label~.,data=reducedFeatures)
+
+bstDense <- xgboost(reducedFeaturesXG, XGlabel, max.depth = 2, eta = 1, nthread = 2, nrounds = 2, objective = "binary:logistic")
+
+resoponse = c(
+"Otu1109",
+"Otu0967", 
+"Otu0817",
+"Otu1717",
+"Otu1915",
+"Otu0745",
+"Otu0552",
+"Otu0781",
+"Otu1985",
+"Otu0772",
+"Otu0030",
+
+"Otu0302",
+"Otu0309",
+"Otu0314",
+"Otu0915",
+"Otu0918",
+"Otu1887"
+);
 ##Split 
 smp_size <- floor(0.75 * nrow(reducedFeatures))
 
@@ -41,7 +65,11 @@ test2 <- reducedFeatures[-data_ind, ]
 
 ## GLM 
 
-model <- glm(label ~.,family=binomial(link='logit'),data=train2,control = list(maxit = 100))
+#model <- glm(label ~.,family=binomial(link='logit'),data=train2,control = list(maxit = 100))
+
+library(randomForest)
+
+model <- randomForest(label ~ ., data = train2, importance = TRUE)
 
 summary(model)
 library(caret)
